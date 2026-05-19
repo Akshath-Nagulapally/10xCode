@@ -11,18 +11,9 @@ Launch N claude agents in a tmux grid, all working inside your current project d
 
 ## Setup
 
-**1. Clone the repo**
 ```bash
-git clone https://github.com/Akshath-Nagulapally/10xCode.git
-cd 10xCode
+git clone https://github.com/Akshath-Nagulapally/10xCode.git && cd 10xCode && ./install.sh
 ```
-
-**2. Install the command**
-```bash
-./install.sh
-```
-
-This symlinks `10xCode` into `/usr/local/bin` so it's available anywhere.
 
 ---
 
