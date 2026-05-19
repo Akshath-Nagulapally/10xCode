@@ -41,13 +41,10 @@ chmod +x "$SETUP"
 
 # Open a new fullscreen Terminal window and run the setup inside it
 osascript << APPLESCRIPT
-tell application "Finder"
-    set {sL, sT, sR, sB} to bounds of window of desktop
-end tell
 tell application "Terminal"
     activate
     do script "bash $SETUP"
     delay 0.5
-    set bounds of front window to {sL, sT, sR, sB}
+    set zoomed of front window to true
 end tell
 APPLESCRIPT
