@@ -2,8 +2,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_DIR="$PWD"
 CONFIG="$SCRIPT_DIR/agents.yaml"
-SESSION="agents"
+SESSION="10x_$(basename "$WORK_DIR")"
 N=2
 
 # Parse --N flag (e.g. --8, --10)
@@ -15,7 +16,7 @@ done
 
 # Load agent names from YAML (cycles if N > number of agents defined)
 AGENT_DATA=$(python3 - "$CONFIG" "$N" <<'PYEOF'
-import yaml, sys, math
+import yaml, sys
 
 config_path, n = sys.argv[1], int(sys.argv[2])
 with open(config_path) as f:
@@ -36,16 +37,15 @@ while IFS= read -r name && IFS= read -r instr; do
     INSTRUCTIONS+=("$instr")
 done <<< "$AGENT_DATA"
 
-# Compute square-ish grid: cols = round(sqrt(N)), rows fills up
-COLS=$(python3 -c "import math; n=$N; print(max(1, round(math.sqrt(n))))")
-
-# Kill existing session and start fresh
+# Kill existing session for this project if it exists
 tmux kill-session -t "$SESSION" 2>/dev/null || true
-tmux new-session -d -s "$SESSION"
 
-# Create N-1 additional panes
+# Create new session rooted in the project directory
+tmux new-session -d -s "$SESSION" -c "$WORK_DIR"
+
+# Create N-1 additional panes, all in the project directory
 for i in $(seq 1 $((N-1))); do
-    tmux split-window -d -t "$SESSION"
+    tmux split-window -d -t "$SESSION" -c "$WORK_DIR"
 done
 
 # Apply layout: 2 panes stacked, otherwise tiled (square grid)
