@@ -2,6 +2,13 @@
 
 Launch N claude agents in a tmux grid, all working inside your current project directory.
 
+## Requirements
+
+- [tmux](https://github.com/tmux/tmux)
+- [claude](https://claude.ai/code) (Claude Code CLI)
+
+---
+
 ## Setup
 
 **1. Clone the repo**
@@ -42,7 +49,6 @@ The tmux session is named after your project folder (e.g. `10x_my_project`), so 
 
 | Count | Grid |
 |-------|------|
-| 1 | single pane |
 | 2 | 2 rows × 1 col (stacked) |
 | 4 | 2 × 2 |
 | 8 | 3 × 3 (8 filled) |
@@ -55,20 +61,6 @@ For any N, the grid stays as square as possible (closest to √N columns).
 
 ## Configuration
 
-### `agents.yaml`
-Defines the agent names and which instructions file they use. All 8 slots point to the same instructions by default — change this if you want different agents to have different instructions.
-
-```yaml
-agents:
-  - name: agent_1
-    instructions: initial_instructions.md
-  - name: agent_2
-    instructions: initial_instructions.md
-  # ...
-```
-
-If you run `10xCode --10` with only 8 agents defined, the list cycles.
-
 ### `initial_instructions.md`
 The instructions piped into each claude instance on startup. Edit this to change what every agent does when it launches.
 
@@ -76,16 +68,8 @@ The default instructs each agent to:
 1. Understand the existing codebase
 2. Create a relevant git branch
 3. Plan a skeleton before writing code
-4. Write a test plan
-5. Run existing tests to establish a baseline
+4. Create a test plan
+5. Run the existing test suite to establish a baseline
 6. Implement the solution
-7. Write and run new tests
-8. Run linting/code quality checks
-
----
-
-## Requirements
-
-- [tmux](https://github.com/tmux/tmux)
-- [claude](https://claude.ai/code) (Claude Code CLI)
-- Python 3 (stdlib only, no extra packages)
+7. Write and run new tests — if a test is wrong, fix the test and note why
+8. Run any linting or code quality checks
