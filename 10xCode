@@ -21,9 +21,30 @@ for arg in "$@"; do
     fi
 done
 
+# Require a git repo
+if ! git -C "$WORK_DIR" rev-parse --git-dir > /dev/null 2>&1; then
+    echo ""
+    echo "10xCode requires a git repository. Initialize one first:"
+    echo ""
+    echo "  git init && git add . && git commit -m 'initial commit'"
+    echo ""
+    exit 1
+fi
+
 # Copy instructions to /tmp so the path is always known inside the new window
 INSTR_TMP="/tmp/10xcode_instructions.md"
 cp "$SCRIPT_DIR/initial_instructions.md" "$INSTR_TMP"
+
+# Create a git worktree for each agent so they work in full isolation
+WORKTREE_BASE="/tmp/10xcode_${SESSION}"
+rm -rf "$WORKTREE_BASE" 2>/dev/null || true
+mkdir -p "$WORKTREE_BASE"
+
+for i in $(seq 1 $N); do
+    BRANCH="10x_agent_${i}"
+    git -C "$WORK_DIR" branch -D "$BRANCH" 2>/dev/null || true
+    git -C "$WORK_DIR" worktree add -b "$BRANCH" "$WORKTREE_BASE/agent_${i}" HEAD
+done
 
 # Write a temp script that will run inside the new Terminal window
 SETUP="/tmp/10xcode_${SESSION}.sh"
@@ -31,11 +52,11 @@ cat > "$SETUP" << SETUP_EOF
 #!/bin/bash
 tmux kill-session -t "$SESSION" 2>/dev/null || true
 sleep 1
-tmux new-session -d -s "$SESSION" -c "$WORK_DIR" -x 220 -y 50
+tmux new-session -d -s "$SESSION" -c "$WORKTREE_BASE/agent_1" -x 220 -y 50
 tmux set-option -t "$SESSION" mouse on
 
-for i in \$(seq 1 $((N-1))); do
-    tmux split-window -d -t "$SESSION" -c "$WORK_DIR"
+for i in \$(seq 2 $N); do
+    tmux split-window -d -t "$SESSION" -c "$WORKTREE_BASE/agent_\$i"
 done
 
 if [ $N -eq 2 ]; then
