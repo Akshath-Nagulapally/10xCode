@@ -40,9 +40,12 @@ WORKTREE_BASE="/tmp/10xcode_${SESSION}"
 rm -rf "$WORKTREE_BASE" 2>/dev/null || true
 mkdir -p "$WORKTREE_BASE"
 
+git -C "$WORK_DIR" worktree prune 2>/dev/null || true
+
 for i in $(seq 1 $N); do
     BRANCH="10x_agent_${i}"
     WTREE="$WORKTREE_BASE/agent_${i}"
+    git -C "$WORK_DIR" worktree remove --force "$WTREE" 2>/dev/null || true
     git -C "$WORK_DIR" branch -D "$BRANCH" 2>/dev/null || true
     git -C "$WORK_DIR" worktree add -b "$BRANCH" "$WTREE" HEAD
     # Pre-register the worktree path with Claude so it skips the trust prompt
