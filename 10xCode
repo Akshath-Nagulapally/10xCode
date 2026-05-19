@@ -14,27 +14,40 @@ for arg in "$@"; do
     fi
 done
 
-# Kill existing session for this project if it exists
+# Write a temp script that will run inside the new Terminal window
+SETUP="/tmp/10xcode_${SESSION}.sh"
+cat > "$SETUP" << SETUP_EOF
+#!/bin/bash
 tmux kill-session -t "$SESSION" 2>/dev/null || true
+tmux new-session -s "$SESSION" -c "$WORK_DIR"
 
-# Create new session rooted in the project directory
-tmux new-session -d -s "$SESSION" -c "$WORK_DIR" -x "$(tput cols)" -y "$(tput lines)"
-
-# Create N-1 additional panes, all in the project directory
-for i in $(seq 1 $((N-1))); do
+for i in \$(seq 1 $((N-1))); do
     tmux split-window -d -t "$SESSION" -c "$WORK_DIR"
 done
 
-# Apply layout: 2 panes stacked, otherwise tiled (square grid)
-if [ "$N" -eq 2 ]; then
+if [ $N -eq 2 ]; then
     tmux select-layout -t "$SESSION" even-vertical
-elif [ "$N" -gt 2 ]; then
+elif [ $N -gt 2 ]; then
     tmux select-layout -t "$SESSION" tiled
 fi
 
-# Launch claude in each pane with instructions piped as initial prompt
-for i in $(seq 0 $((N-1))); do
-    tmux send-keys -t "$SESSION:0.$i" "claude < \"$INSTR\"" Enter
+for i in \$(seq 0 $((N-1))); do
+    tmux send-keys -t "$SESSION:0.\$i" "claude < \"$INSTR\"" Enter
 done
 
 tmux attach-session -t "$SESSION"
+SETUP_EOF
+chmod +x "$SETUP"
+
+# Open a new fullscreen Terminal window and run the setup inside it
+osascript << APPLESCRIPT
+tell application "Finder"
+    set {sL, sT, sR, sB} to bounds of window of desktop
+end tell
+tell application "Terminal"
+    activate
+    do script "bash $SETUP"
+    delay 0.5
+    set bounds of front window to {sL, sT, sR, sB}
+end tell
+APPLESCRIPT
