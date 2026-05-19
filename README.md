@@ -88,4 +88,4 @@ The default instructs each agent to:
 
 - [tmux](https://github.com/tmux/tmux)
 - [claude](https://claude.ai/code) (Claude Code CLI)
-- Python 3 with `pyyaml` (`pip install pyyaml`)
+- Python 3 (stdlib only, no extra packages)
