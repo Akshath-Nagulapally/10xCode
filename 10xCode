@@ -1,9 +1,16 @@
 #!/bin/bash
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlink to find the real script location
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -L "$SCRIPT_PATH" ]; do
+    DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+    [[ "$SCRIPT_PATH" != /* ]] && SCRIPT_PATH="$DIR/$SCRIPT_PATH"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+
 WORK_DIR="$PWD"
-INSTR="$SCRIPT_DIR/initial_instructions.md"
 SESSION="10x_$(basename "$WORK_DIR")"
 N=2
 
@@ -13,6 +20,10 @@ for arg in "$@"; do
         N="${BASH_REMATCH[1]}"
     fi
 done
+
+# Copy instructions to /tmp so the path is always known inside the new window
+INSTR_TMP="/tmp/10xcode_instructions.md"
+cp "$SCRIPT_DIR/initial_instructions.md" "$INSTR_TMP"
 
 # Write a temp script that will run inside the new Terminal window
 SETUP="/tmp/10xcode_${SESSION}.sh"
@@ -33,7 +44,7 @@ elif [ $N -gt 2 ]; then
 fi
 
 for i in \$(seq 0 $((N-1))); do
-    tmux send-keys -t "$SESSION:0.\$i" "claude < \"$INSTR\"" Enter
+    tmux send-keys -t "$SESSION:0.\$i" "claude --dangerously-skip-permissions < \"$INSTR_TMP\"" Enter
 done
 
 tmux attach-session -t "$SESSION"
