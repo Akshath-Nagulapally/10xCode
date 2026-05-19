@@ -45,7 +45,8 @@ for i in $(seq 1 $N); do
     BRANCH="10x_agent_${i}"
     WTREE="$WORKTREE_BASE/agent_${i}"
     if [ ! -d "$WTREE" ]; then
-        git -C "$WORK_DIR" worktree add -b "$BRANCH" "$WTREE" HEAD
+        git -C "$WORK_DIR" worktree add -b "$BRANCH" "$WTREE" HEAD 2>/dev/null || \
+        git -C "$WORK_DIR" worktree add "$WTREE" "$BRANCH"
     fi
     # Pre-register the worktree path with Claude so it skips the trust prompt
     ENCODED=$(echo "$WTREE" | sed 's|/|-|g')
