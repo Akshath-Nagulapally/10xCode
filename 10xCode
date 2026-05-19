@@ -32,6 +32,7 @@ cat > "$SETUP" << SETUP_EOF
 tmux kill-session -t "$SESSION" 2>/dev/null || true
 sleep 1
 tmux new-session -d -s "$SESSION" -c "$WORK_DIR" -x 220 -y 50
+tmux set-option -t "$SESSION" mouse on
 
 for i in \$(seq 1 $((N-1))); do
     tmux split-window -d -t "$SESSION" -c "$WORK_DIR"
