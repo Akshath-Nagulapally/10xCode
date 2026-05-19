@@ -1,0 +1,24 @@
+agents:
+  - name: agent_1
+    instructions: initial_instructions.md
+
+  - name: agent_2
+    instructions: initial_instructions.md
+
+  - name: agent_3
+    instructions: initial_instructions.md
+
+  - name: agent_4
+    instructions: initial_instructions.md
+
+  - name: agent_5
+    instructions: initial_instructions.md
+
+  - name: agent_6
+    instructions: initial_instructions.md
+
+  - name: agent_7
+    instructions: initial_instructions.md
+
+  - name: agent_8
+    instructions: initial_instructions.md
