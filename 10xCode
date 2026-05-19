@@ -18,7 +18,7 @@ done
 tmux kill-session -t "$SESSION" 2>/dev/null || true
 
 # Create new session rooted in the project directory
-tmux new-session -d -s "$SESSION" -c "$WORK_DIR"
+tmux new-session -d -s "$SESSION" -c "$WORK_DIR" -x "$(tput cols)" -y "$(tput lines)"
 
 # Create N-1 additional panes, all in the project directory
 for i in $(seq 1 $((N-1))); do
