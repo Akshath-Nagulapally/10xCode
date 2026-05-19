@@ -66,12 +66,20 @@ elif [ $N -gt 2 ]; then
 fi
 
 for i in \$(seq 0 $((N-1))); do
-    tmux send-keys -t "$SESSION:0.\$i" "claude --dangerously-skip-permissions < \"$INSTR_TMP\"" Enter
+    tmux send-keys -t "$SESSION:0.\$i" "claude --dangerously-skip-permissions" Enter
 done
 
 # Auto-confirm the "trust this folder" prompt (option 1 is pre-selected)
-sleep 3
+sleep 4
 for i in \$(seq 0 $((N-1))); do
+    tmux send-keys -t "$SESSION:0.\$i" "" Enter
+done
+
+# Wait for claude to be ready, then send instructions as the first message
+sleep 3
+INSTRUCTIONS=\$(cat "$INSTR_TMP")
+for i in \$(seq 0 $((N-1))); do
+    tmux send-keys -l -t "$SESSION:0.\$i" "\$INSTRUCTIONS"
     tmux send-keys -t "$SESSION:0.\$i" "" Enter
 done
 
