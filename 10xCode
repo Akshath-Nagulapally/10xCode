@@ -10,14 +10,41 @@ while [ -L "$SCRIPT_PATH" ]; do
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
 
+source "$SCRIPT_DIR/lib/worktree_helpers.sh"
+
 WORK_DIR="$PWD"
 SESSION="10x_$(basename "$WORK_DIR")"
 N=2
 
-# Parse --N flag (e.g. --8, --10)
+# Parse flags
 for arg in "$@"; do
     if [[ "$arg" =~ ^--([0-9]+)$ ]]; then
         N="${BASH_REMATCH[1]}"
+    elif [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
+        echo ""
+        echo "Usage: 10xCode [--N]"
+        echo ""
+        echo "Launch N Claude agents in a tmux grid, each working in an isolated git worktree."
+        echo ""
+        echo "Options:"
+        echo "  --2    2 agents, stacked vertically (default)"
+        echo "  --4    4 agents in a 2x2 grid"
+        echo "  --8    8 agents in a 3x3 grid"
+        echo "  --9    9 agents in a 3x3 grid"
+        echo "  --10   10 agents in a 4x3 grid"
+        echo "  -h, --help  Show this help message"
+        echo ""
+        echo "Requirements: tmux, claude (Claude Code CLI), git repo in current directory"
+        echo ""
+        echo "Configuration:"
+        echo "  Edit initial_instructions.md in the 10xCode install directory to change"
+        echo "  what each agent does on startup."
+        echo ""
+        echo "Session management:"
+        echo "  Detach:     Ctrl+b d"
+        echo "  Kill:       tmux kill-session -t 10x_<project>"
+        echo ""
+        exit 0
     fi
 done
 
@@ -35,13 +62,33 @@ fi
 INSTR_TMP="/tmp/10xcode_instructions.md"
 cp "$SCRIPT_DIR/initial_instructions.md" "$INSTR_TMP"
 
-# Create a git worktree for each agent so they work in full isolation
 WORKTREE_BASE="/tmp/10xcode_${SESSION}"
 mkdir -p "$WORKTREE_BASE"
 
 git -C "$WORK_DIR" worktree prune 2>/dev/null || true
 
-for i in $(seq 1 $N); do
+# Determine effective agent count:
+#   - If existing worktrees > N: use all existing (ignore N)
+#   - If existing worktrees < N: open all existing + create the difference
+#   - If no existing worktrees: create N new ones
+EXISTING_MAX=$(find_max_agent_number "$WORKTREE_BASE")
+EFFECTIVE_N=$(compute_effective_n "$EXISTING_MAX" "$N")
+
+if [ "$EXISTING_MAX" -gt 0 ]; then
+    if [ "$N" -le "$EXISTING_MAX" ]; then
+        echo ""
+        echo "Found $EXISTING_MAX existing worktree(s) — opening all $EXISTING_MAX."
+        echo "You requested $N. To open more, run: 10xCode --$((EXISTING_MAX + 1)) (or higher)"
+        echo ""
+    else
+        echo ""
+        echo "Found $EXISTING_MAX existing worktree(s) — reusing them and adding $((EFFECTIVE_N - EXISTING_MAX)) new one(s) to reach $EFFECTIVE_N total."
+        echo ""
+    fi
+fi
+
+# Create any missing worktrees up to EFFECTIVE_N
+for i in $(seq 1 "$EFFECTIVE_N"); do
     BRANCH="10x_agent_${i}"
     WTREE="$WORKTREE_BASE/agent_${i}"
     if [ ! -d "$WTREE" ]; then
@@ -62,17 +109,17 @@ sleep 1
 tmux new-session -d -s "$SESSION" -c "$WORKTREE_BASE/agent_1" -x 220 -y 50
 tmux set-option -t "$SESSION" mouse on
 
-for i in \$(seq 2 $N); do
+for i in \$(seq 2 $EFFECTIVE_N); do
     tmux split-window -d -t "$SESSION" -c "$WORKTREE_BASE/agent_\$i"
 done
 
-if [ $N -eq 2 ]; then
+if [ $EFFECTIVE_N -eq 2 ]; then
     tmux select-layout -t "$SESSION" even-vertical
-elif [ $N -gt 2 ]; then
+elif [ $EFFECTIVE_N -gt 2 ]; then
     tmux select-layout -t "$SESSION" tiled
 fi
 
-for i in \$(seq 0 $((N-1))); do
+for i in \$(seq 0 $((EFFECTIVE_N-1))); do
     tmux send-keys -t "$SESSION:0.\$i" "claude --dangerously-skip-permissions < \"$INSTR_TMP\"" Enter
 done
 
